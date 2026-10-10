@@ -1,0 +1,17 @@
+
+{% extends "base.html" %}
+{% block title %}Pet Care Assistant · PETORBIT{% endblock %}
+{% block content %}
+<section class="panel assistant-result">
+    <div class="brand-icon">🤖</div>
+    <h1>Pet Care Assistant</h1>
+    <p><strong>Your question:</strong> {{ question }}</p>
+    <div class="answer">
+        <strong>PETORBIT assistant says:</strong>
+        <p>{{ answer }}</p>
+    </div>
+    <p class="muted">This is general information, not a veterinary diagnosis. For urgent symptoms, contact a veterinarian.</p>
+    <a class="btn" href="{{ url_for('dashboard') }}#assistant">Ask another question</a>
+    <a class="text-link" href="{{ url_for('dashboard') }}">Back to dashboard</a>
+</section>
+{% endblock %}

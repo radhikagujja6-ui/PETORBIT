@@ -1,0 +1,274 @@
+
+{% extends "base.html" %}
+{% block title %}Dashboard · PETORBIT{% endblock %}
+{% block content %}
+
+<section class="hero">
+    <div>
+        <span class="eyebrow">SMART PET CARE PLATFORM</span>
+        <h1>Welcome, {{ user.name }}! 🐾</h1>
+        <p>Care for your pets, track their growth, discover food, and help lost pets find home.</p>
+        {% if user.role == 'admin' %}<span class="badge">Administrator</span>{% endif %}
+    </div>
+    <div class="hero-art">🐕 🐈</div>
+</section>
+
+<section class="stats">
+    <article><span>🐾</span><p>My pets</p><strong>{{ pets|length }}</strong></article>
+    <article><span>🥣</span><p>Food products</p><strong>{{ foods|length }}</strong></article>
+    <article><span>🔎</span><p>Pet reports</p><strong>{{ reports|length }}</strong></article>
+    <article><span>🏡</span><p>Adoption listings</p><strong>{{ adoptions|length }}</strong></article>
+</section>
+
+<!-- PET PROFILES -->
+<section class="panel" id="pets">
+    <h2>🐾 My Pet Profiles</h2>
+    <form method="post" action="{{ url_for('add_pet') }}"
+          enctype="multipart/form-data" class="form-grid">
+        <label>Pet name *<input name="name" required></label>
+        <label>Species *
+            <select name="species" required>
+                <option value="">Select species</option>
+                <option>Dog</option><option>Cat</option><option>Bird</option>
+                <option>Rabbit</option><option>Fish</option><option>Other</option>
+            </select>
+        </label>
+        <label>Breed<input name="breed"></label>
+        <label>Birth date<input type="date" name="birth_date"></label>
+        <label>Weight in kg<input type="number" name="weight" min="0" step="0.1" value="0"></label>
+        <label>Pet photo<input type="file" name="photo" accept=".png,.jpg,.jpeg,.webp"></label>
+        <button class="btn full">＋ Add Pet</button>
+    </form>
+
+    <div class="cards">
+    {% for pet in pets %}
+        <article class="pet-card">
+            {% if pet.photo %}
+            <img class="pet-photo" src="{{ url_for('static', filename='uploads/' ~ pet.photo) }}" alt="Pet">
+            {% else %}<div class="pet-photo placeholder">🐾</div>{% endif %}
+            <div class="card-body">
+                <h3>{{ pet.name }}</h3>
+                <p>{{ pet.species }} · {{ pet.breed or 'Breed not specified' }}</p>
+                <p>Birth date: {{ pet.birth_date or 'Not added' }}</p>
+                <p>Current weight: {{ pet.weight }} kg</p>
+                <form method="post" action="{{ url_for('delete_pet', pet_id=pet.id) }}"
+                      data-confirm="Delete this pet and all linked health and growth records?">
+                    <button class="btn danger small">Delete pet</button>
+                </form>
+            </div>
+        </article>
+    {% else %}
+        <p class="muted">No pets registered. Add your first pet above.</p>
+    {% endfor %}
+    </div>
+</section>
+
+<!-- FOOD SHOP -->
+<section class="panel" id="food">
+    <h2>🥣 Pet Food Shop</h2>
+    {% if user.role == 'admin' %}
+    <h3>Add a food product</h3>
+    <form method="post" action="{{ url_for('add_food') }}" class="form-grid">
+        <label>Product name<input name="name" required></label>
+        <label>Suitable for
+            <select name="species"><option>Dog</option><option>Cat</option>
+                <option>Bird</option><option>Rabbit</option><option>Other</option></select>
+        </label>
+        <label>Price (₹)<input type="number" name="price" min="0" step="0.01" required></label>
+        <label>Stock<input type="number" name="stock" min="0" required></label>
+        <label class="full">Description<input name="description"></label>
+        <button class="btn full">Add product</button>
+    </form>
+    {% endif %}
+
+    <div class="cards">
+    {% for item in foods %}
+        <article class="product-card">
+            <div class="product-icon">🥫</div>
+            <div class="card-body">
+                <h3>{{ item.name }}</h3>
+                <p>{{ item.species }} · {{ item.description }}</p>
+                <h3>₹{{ '%.2f'|format(item.price) }}</h3>
+                <p>Stock: {{ item.stock }}</p>
+                {% if item.stock > 0 %}
+                <form method="post" action="{{ url_for('order_food', food_id=item.id) }}">
+                    <label>Quantity
+                        <input type="number" name="quantity" min="1"
+                               max="{{ item.stock }}" value="1" required>
+                    </label>
+                    <button class="btn">Place demo order</button>
+                </form>
+                {% else %}<span class="badge">Out of stock</span>{% endif %}
+            </div>
+        </article>
+    {% else %}<p class="muted">No food products available yet.</p>{% endfor %}
+    </div>
+
+    <h3>My orders</h3>
+    <div class="table-wrap"><table>
+        <tr><th>Order</th><th>Product</th><th>Qty</th><th>Total</th><th>Status</th></tr>
+        {% for order in orders %}
+        <tr><td>#{{ order.id }}</td><td>{{ order.food_name }}</td>
+            <td>{{ order.quantity }}</td><td>₹{{ '%.2f'|format(order.total) }}</td>
+            <td>{{ order.status }}</td></tr>
+        {% else %}<tr><td colspan="5">No orders yet.</td></tr>{% endfor %}
+    </table></div>
+</section>
+
+<!-- FEEDING -->
+<section class="panel" id="feeding">
+    <h2>🍽️ Feeding Schedule & Logs</h2>
+    {% if pets %}
+    <form method="post" action="{{ url_for('add_feeding') }}" class="form-grid">
+        <label>Pet
+            <select name="pet_id">{% for pet in pets %}<option value="{{ pet.id }}">{{ pet.name }}</option>{% endfor %}</select>
+        </label>
+        <label>Food name<input name="food_name" required></label>
+        <label>Amount<input name="amount" placeholder="e.g. 1 cup"></label>
+        <label>Date<input type="date" name="log_date" value="{{ today }}"></label>
+        <button class="btn full">Save feeding log</button>
+    </form>
+    {% else %}<p class="muted">Add a pet profile first.</p>{% endif %}
+    <div class="table-wrap"><table>
+        <tr><th>Pet</th><th>Food</th><th>Amount</th><th>Date</th></tr>
+        {% for log in feeding %}<tr><td>{{ log.pet_name }}</td><td>{{ log.food_name }}</td><td>{{ log.amount }}</td><td>{{ log.log_date }}</td></tr>
+        {% else %}<tr><td colspan="4">No feeding logs yet.</td></tr>{% endfor %}
+    </table></div>
+</section>
+
+<!-- GROWTH TRACKER -->
+<section class="panel" id="growth">
+    <h2>📈 Pet Growth Tracker</h2>
+    {% if pets %}
+    <form method="post" action="{{ url_for('add_growth') }}" class="form-grid">
+        <label>Pet<select name="pet_id">{% for pet in pets %}<option value="{{ pet.id }}">{{ pet.name }}</option>{% endfor %}</select></label>
+        <label>Date<input type="date" name="log_date" value="{{ today }}"></label>
+        <label>Weight (kg)<input type="number" name="weight" min="0" step="0.1" required></label>
+        <label>Height (cm)<input type="number" name="height" min="0" step="0.1" value="0"></label>
+        <label class="full">Notes<input name="notes"></label>
+        <button class="btn full">Save measurement</button>
+    </form>
+    {% endif %}
+    <div class="table-wrap"><table>
+        <tr><th>Pet</th><th>Date</th><th>Weight</th><th>Height</th><th>Notes</th></tr>
+        {% for g in growth %}<tr><td>{{ g.pet_name }}</td><td>{{ g.log_date }}</td><td>{{ g.weight }} kg</td><td>{{ g.height }} cm</td><td>{{ g.notes }}</td></tr>
+        {% else %}<tr><td colspan="5">No growth records yet.</td></tr>{% endfor %}
+    </table></div>
+    <p class="muted">Growth tracking is informational and does not replace veterinary advice.</p>
+</section>
+
+<!-- HEALTH -->
+<section class="panel" id="health">
+    <h2>🩺 Health & Vaccination Records</h2>
+    {% if pets %}
+    <form method="post" action="{{ url_for('add_health') }}" class="form-grid">
+        <label>Pet<select name="pet_id">{% for pet in pets %}<option value="{{ pet.id }}">{{ pet.name }}</option>{% endfor %}</select></label>
+        <label>Record type<select name="kind"><option>Vaccination</option><option>Vet checkup</option><option>Medication</option><option>Deworming</option><option>Other</option></select></label>
+        <label>Record date<input type="date" name="record_date" value="{{ today }}"></label>
+        <label>Next due date<input type="date" name="next_due"></label>
+        <label class="full">Notes<input name="notes"></label>
+        <button class="btn full">Save health record</button>
+    </form>
+    {% endif %}
+    <div class="table-wrap"><table>
+        <tr><th>Pet</th><th>Type</th><th>Date</th><th>Next due</th><th>Notes</th></tr>
+        {% for h in health %}<tr><td>{{ h.pet_name }}</td><td>{{ h.kind }}</td><td>{{ h.record_date }}</td><td>{{ h.next_due or '—' }}</td><td>{{ h.notes }}</td></tr>
+        {% else %}<tr><td colspan="5">No health records yet.</td></tr>{% endfor %}
+    </table></div>
+</section>
+
+<!-- MISSING AND FOUND PETS -->
+<section class="panel" id="missing">
+    <h2>🔎 Missing & Found Pets</h2>
+    <form method="post" action="{{ url_for('add_report') }}" enctype="multipart/form-data" class="form-grid">
+        <label>Report type<select name="report_type"><option>Missing</option><option>Found</option></select></label>
+        <label>Pet name or description<input name="pet_name" required></label>
+        <label>Species<select name="species"><option>Dog</option><option>Cat</option><option>Bird</option><option>Other</option></select></label>
+        <label>Last-seen / found location<input name="location" required></label>
+        <label>Public contact information<input name="contact" required></label>
+        <label>Photo<input type="file" name="photo" accept=".png,.jpg,.jpeg,.webp"></label>
+        <label class="full">Identifying details<input name="description"></label>
+        <button class="btn full">Publish report</button>
+    </form>
+    <div class="cards">
+    {% for report in reports %}
+        <article class="report-card">
+            {% if report.photo %}<img class="pet-photo" src="{{ url_for('static', filename='uploads/' ~ report.photo) }}" alt="Reported pet">{% else %}<div class="pet-photo placeholder">🔎</div>{% endif %}
+            <div class="card-body">
+                <span class="badge">{{ report.report_type }} · {{ report.status }}</span>
+                <h3>{{ report.pet_name }}</h3><p>{{ report.species }} · {{ report.location }}</p>
+                <p>{{ report.description }}</p><p>Contact: {{ report.contact }}</p>
+                {% if report.status == 'Open' %}
+                <form method="post" action="{{ url_for('resolve_report', report_id=report.id) }}" data-confirm="Mark this report as resolved?">
+                    <button class="btn small">Mark resolved</button>
+                </form>{% endif %}
+            </div>
+        </article>
+    {% else %}<p class="muted">No reports published yet.</p>{% endfor %}
+    </div>
+    <p class="muted">Only publish contact details you are comfortable sharing. Verify ownership and meet safely.</p>
+</section>
+
+<!-- ADOPTION -->
+<section class="panel" id="adoption">
+    <h2>🏡 Pet Adoption & Rescue</h2>
+    <form method="post" action="{{ url_for('add_adoption') }}" class="form-grid">
+        <label>Pet name<input name="pet_name" required></label>
+        <label>Species<select name="species"><option>Dog</option><option>Cat</option><option>Bird</option><option>Other</option></select></label>
+        <label>Age<input name="age" placeholder="e.g. 6 months"></label>
+        <label>Location<input name="location" required></label>
+        <label>Contact details<input name="contact" required></label>
+        <label class="full">Description<input name="description" placeholder="Temperament and care requirements"></label>
+        <button class="btn full">Publish adoption listing</button>
+    </form>
+    <div class="cards">
+    {% for post in adoptions %}
+        <article class="product-card"><div class="product-icon">🏡</div><div class="card-body">
+            <span class="badge">{{ post.status }}</span><h3>{{ post.pet_name }}</h3>
+            <p>{{ post.species }} · {{ post.age }}</p><p>{{ post.description }}</p>
+            <p>Location: {{ post.location }}</p><p>Contact: {{ post.contact }}</p>
+            {% if post.status == 'Available' %}
+            <form method="post" action="{{ url_for('close_adoption', post_id=post.id) }}" data-confirm="Close this adoption listing?">
+                <button class="btn small">Mark adopted / close</button>
+            </form>{% endif %}
+        </div></article>
+    {% else %}<p class="muted">No adoption listings yet.</p>{% endfor %}
+    </div>
+</section>
+
+<!-- PET CARE ASSISTANT -->
+<section class="panel" id="assistant">
+    <h2>🤖 Pet Care Assistant</h2>
+    <p class="muted">Ask for general information about food, growth, health, adoption, or missing pets.</p>
+    <form method="post" action="{{ url_for('assistant') }}" class="form">
+        <label>Your question
+            <input name="question" placeholder="How can I keep my pet healthy?" required>
+        </label>
+        <button class="btn">Ask assistant</button>
+    </form>
+    <p class="muted">This starter version uses predefined guidance, not a live AI model. It cannot diagnose illnesses.</p>
+</section>
+
+{% if user.role == 'admin' %}
+<section class="panel">
+    <h2>⚙️ Admin tools</h2>
+    <h3>Grant admin access</h3>
+    <form method="post" action="{{ url_for('promote_user') }}" class="form">
+        <label>Registered user's email<input type="email" name="email" required></label>
+        <button class="btn">Make administrator</button>
+    </form>
+    <h3>Manage orders</h3>
+    <div class="table-wrap"><table>
+        <tr><th>Order</th><th>User ID</th><th>Product</th><th>Quantity</th><th>Total</th><th>Status</th><th>Update</th></tr>
+        {% for order in orders %}
+        <tr><td>#{{ order.id }}</td><td>{{ order.user_id }}</td><td>{{ order.food_name }}</td><td>{{ order.quantity }}</td><td>₹{{ '%.2f'|format(order.total) }}</td><td>{{ order.status }}</td>
+        <td><form method="post" action="{{ url_for('order_status', order_id=order.id) }}">
+            <select name="status"><option>Placed</option><option>Processing</option><option>Completed</option><option>Cancelled</option></select>
+            <button class="btn small">Update</button>
+        </form></td></tr>
+        {% else %}<tr><td colspan="7">No orders yet.</td></tr>{% endfor %}
+    </table></div>
+</section>
+{% endif %}
+
+{% endblock %}

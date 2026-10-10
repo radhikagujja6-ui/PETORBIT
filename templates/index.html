@@ -1,0 +1,144 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>PETORBIT - Pet Management</title>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+
+    <header>
+        <h1>🐾 PETORBIT</h1>
+        <p>Your Pet Management System</p>
+    </header>
+
+    <main>
+
+        <section class="form-section">
+            <h2>Register a New Pet</h2>
+
+            <form action="{{ url_for('add_pet') }}" method="POST">
+
+                <input type="text" name="name"
+                       placeholder="Pet Name" required>
+
+                <select name="pet_type" required>
+                    <option value="">Select Pet Type</option>
+                    <option value="Dog">Dog</option>
+                    <option value="Cat">Cat</option>
+                    <option value="Bird">Bird</option>
+                    <option value="Rabbit">Rabbit</option>
+                    <option value="Other">Other</option>
+                </select>
+
+                <input type="number" name="age"
+                       placeholder="Pet Age" min="0" required>
+
+                <input type="text" name="owner"
+                       placeholder="Owner Name" required>
+
+                <button type="submit">Add Pet</button>
+
+            </form>
+        </section>
+
+        <section class="pets-section">
+            <h2>Registered Pets</h2>
+
+            {% if pets %}
+
+            <div class="pet-list">
+
+                {% for pet in pets %}
+
+                <div class="pet-card">
+
+                    <h3>🐶 {{ pet['name'] }}</h3>
+
+                    <p><strong>ID:</strong> {{ pet['id'] }}</p>
+                    <p><strong>Type:</strong> {{ pet['pet_type'] }}</p>
+                    <p><strong>Age:</strong> {{ pet['age'] }} years</p>
+                    <p><strong>Owner:</strong> {{ pet['owner'] }}</p>
+
+                    <details>
+                        <summary>Edit Pet</summary>
+
+                        <form action="{{ url_for('update_pet',
+                                        pet_id=pet['id']) }}"
+                              method="POST">
+
+                            <input type="text" name="name"
+                                   value="{{ pet['name'] }}" required>
+
+                            <select name="pet_type" required>
+                                <option value="Dog"
+                                    {% if pet['pet_type'] == 'Dog' %}selected{% endif %}>
+                                    Dog
+                                </option>
+                                <option value="Cat"
+                                    {% if pet['pet_type'] == 'Cat' %}selected{% endif %}>
+                                    Cat
+                                </option>
+                                <option value="Bird"
+                                    {% if pet['pet_type'] == 'Bird' %}selected{% endif %}>
+                                    Bird
+                                </option>
+                                <option value="Rabbit"
+                                    {% if pet['pet_type'] == 'Rabbit' %}selected{% endif %}>
+                                    Rabbit
+                                </option>
+                                <option value="Other"
+                                    {% if pet['pet_type'] == 'Other' %}selected{% endif %}>
+                                    Other
+                                </option>
+                            </select>
+
+                            <input type="number" name="age"
+                                   value="{{ pet['age'] }}"
+                                   min="0" required>
+
+                            <input type="text" name="owner"
+                                   value="{{ pet['owner'] }}" required>
+
+                            <button type="submit">Save Changes</button>
+                        </form>
+                    </details>
+
+                    <form action="{{ url_for('delete_pet',
+                                    pet_id=pet['id']) }}"
+                          method="POST"
+                          onsubmit="return confirm('Delete this pet?');">
+
+                        <button type="submit" class="delete-btn">
+                            Delete Pet
+                        </button>
+                    </form>
+
+                </div>
+
+                {% endfor %}
+
+            </div>
+
+            {% else %}
+
+                <p class="empty">No pets registered yet. Add your first pet!</p>
+
+            {% endif %}
+
+        </section>
+
+    </main>
+
+    <footer>
+        <p>© 2026 PETORBIT | Made with ❤️ for pets</p>
+    </footer>
+
+</body>
+</html>
